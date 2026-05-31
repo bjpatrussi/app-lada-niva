@@ -4,7 +4,7 @@ import os
 
 # Configuração inicial da página do Streamlit
 st.set_page_config(
-    page_title="Guia de Engenharia Alternativa - Lada Niva",
+    page_title="Guia de Peças Alternativas - Lada Niva",
     page_icon="🚜",
     layout="wide"
 )
