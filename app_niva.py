@@ -25,16 +25,28 @@ st.markdown('<p class="subtitle">Base de dados dinâmica lida a partir do compil
 # NOME DA SUA PLANILHA NO GITHUB
 NOME_PLANILHA = "pecas_niva_v3.xlsx"
 
-# 1. Função Inteligente para Carregar os dados do arquivo Excel
+# Função Inteligente para identificar a origem do link e dar o nome correto ao botão
+def obter_nome_do_link(url):
+    url_lower = str(url).lower()
+    if "grauca4x4" in url_lower:
+        return "🔗 Abrir Matéria Original no Blog Grauçá 4x4"
+    elif "sertaooffroad" in url_lower or ".pdf" in url_lower:
+        return "📄 Baixar Catálogo/Manual Técnico (PDF)"
+    elif "scribd" in url_lower:
+        return "📚 Visualizar Documento de Engenharia no Scribd"
+    elif "drive.google" in url_lower:
+        return "📁 Abrir Arquivo Compartilhado no Google Drive"
+    else:
+        return "🌐 Abrir Fonte Externa de Consulta"
+
+# 1. Carregar os dados do arquivo Excel
 @st.cache_data
 def carregar_dados_do_excel():
-    # Verifica se o arquivo Excel está na pasta
     if not os.path.exists(NOME_PLANILHA):
-        st.error(f"Erro Crítico: O arquivo '{NOME_PLANILHA}' não foi encontrado na pasta do projeto!")
+        st.error(f"Erro Crítico: O arquivo '{NOME_PLANILHA}' não foi encontrado!")
         return pd.DataFrame()
     
     try:
-        # Lê a planilha preenchendo células vazias com texto em branco
         dados_excel = pd.read_excel(NOME_PLANILHA)
         dados_excel = dados_excel.fillna("")
         return dados_excel
@@ -44,23 +56,19 @@ def carregar_dados_do_excel():
 
 df = carregar_dados_do_excel()
 
-# Se a planilha foi lida com sucesso, monta os filtros e a interface
 if not df.empty:
     # 2. Barra Lateral (Painel de Filtros Dinâmicos)
     st.sidebar.header("🔍 Painel de Filtros")
 
-    # Filtro por Palavra-Chave
     busca = st.sidebar.text_input("Buscar por componente ou carro base:", "").strip().lower()
 
-    # Filtro por Sistema Mecânico (Lido automaticamente da planilha)
     sistemas_disponiveis = ["Todos"] + sorted([str(s) for s in df["Sistema"].unique() if s])
     sistema_selecionado = st.sidebar.selectbox("Filtrar por Sistema Mecânico:", sistemas_disponiveis)
 
-    # Filtro por Tipo de Modificação (Lido automaticamente da planilha)
     tipos_disponiveis = ["Todos"] + sorted([str(t) for t in df["Tipo"].unique() if t])
     tipo_selecionado = st.sidebar.selectbox("Filtrar por Tipo de Solução:", tipos_disponiveis)
 
-    # 3. Aplicação dos Filtros no Painel
+    # 3. Aplicação dos Filtros
     df_filtrado = df.copy()
 
     if busca:
@@ -77,11 +85,11 @@ if not df.empty:
     if tipo_selecionado != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Tipo"] == tipo_selecionado]
 
-    # 4. Exibição dos Cartões de Peças na Tela
+    # 4. Exibição dos Resultados
     st.subheader(f"🛠️ Soluções Mapeadas ({len(df_filtrado)} encontradas)")
 
     if df_filtrado.empty:
-        st.info("Nenhuma modificação encontrada para essa busca.")
+        st.info("Nenhuma modificação encontrada.")
     else:
         for idx, row in df_filtrado.iterrows():
             with st.expander(f"⚙️ {row['Sistema']} -> **{row['Componente Russo']}** compatível com **{row['Origem']}**"):
@@ -104,10 +112,11 @@ if not df.empty:
                     st.markdown(f"**🛠️ Notas Técnicas de Instalação/Adaptação:**")
                     st.markdown(f'<div class="card-instalacao">{row["Instalacao"]}</div>', unsafe_allow_html=True)
                 
-                if row['Link']:
+                # CORREÇÃO AQUI: O link agora passa pela função para ganhar o nome correto de forma dinâmica
+                if row['Link'] and str(row['Link']).strip() != "":
+                    texto_botao = obter_nome_do_link(row['Link'])
                     st.write("")
-                    st.write(f"🔗 [Abrir Post Original no Blog Grauçá 4x4]({row['Link']})")
+                    st.markdown(f"[{texto_botao}]({row['Link']})")
 
-    # Rodapé Técnico Lateral
     st.sidebar.write("---")
-    st.sidebar.success(f"📈 Total de registros carregados da planilha V3.0: {len(df)}")
+    st.sidebar.success(f"📈 Total de registros carregados: {len(df)}")
